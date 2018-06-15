@@ -1,0 +1,30 @@
+<form action="db_qbe.php" method="post" id="formQBE" class="lock-page">
+    <div class="width100">
+        <fieldset>
+            {% if searches_field %}
+                {# _getSavedSearchesField #}
+                {% trans 'Saved bookmarked search:' %}
+                <select name="searchId" id="searchId">
+                    <option value="">{% trans 'New bookmark' %}</option>
+                    {% for id, name in saved_search_list %}
+                        <option value="{{ id | raw }}" {{ (id == current_search_id) ? 'selected="selected"' : '' }}>
+                            {{ name | raw }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="searchName" id="searchName" value="{{ current_search_name }}"/>
+                <input type="hidden" name="action" id="action" value=""/>
+                <input type="submit" name="saveSearch" id="saveSearch" value="{% trans 'Current bookmark' %}"/>
+                {% if current_search_id is not null %}
+                    <input type="submit" name="updateSearch" id="updateSearch" value="{% trans 'Update bookmark' %}"/>
+                    <input type="submit" name="deleteSearch" id="deleteSearch" value="{% trans 'Delete bookmark' %}"/>
+                {% endif %}
+            {% endif %}
+            <div class="responsivetable jsresponsive">
+                <table class="data" style="width: 100%;">
+                    {# _getColumnNamesRow #}
+                    <tr class="noclick">
+                        <th>{% trans 'Column:' %}</th>
+                        {% for ci in 0..criteria_cnt-1 %}
+                            
+                        {% endfor %}

@@ -159,4 +159,4 @@ $response->addHTML(
 /**
  * Displays the Query by example form
  */
-$response->addHTML($db_qbe->getSelectionForm());
+$response->addHTML($db_qbe->getHtmlForMain());

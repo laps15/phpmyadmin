@@ -1782,120 +1782,115 @@ class Qbe
      *
      * @return string QBE form
      */
-    public function getSelectionForm()
+    public function getHtmlForMain()
     {
-        $html_output = '<form action="db_qbe.php" method="post" id="formQBE" '
-            . 'class="lock-page">';
-        $html_output .= '<div class="width100">';
-        $html_output .= '<fieldset>';
-
-        if ($GLOBALS['cfgRelation']['savedsearcheswork']) {
-            $html_output .= $this->_getSavedSearchesField();
+        $currentSearch = $this->_getCurrentSearch();
+        $currentSearchId = null;
+        $currentSearchName = null;
+        if ($currentSearch != null) {
+            $currentSearchId = $currentSearch->getId();
+            $currentSearchName = $currentSearch->getSearchName();
         }
 
-        $html_output .= '<div class="responsivetable jsresponsive">';
-        $html_output .= '<table class="data" style="width: 100%;">';
+        $new_column_count = 0;
+        for ($column_index = 0;
+            $column_index < $this->_criteria_column_count;
+            $column_index++) {
+            if (isset($this->_criteriaColumnInsert[$column_index])
+                && $this->_criteriaColumnInsert[$column_index] == 'on'
+            ) {
+                $html_output = Template::get('database/qbe/column_select_cell')->render([
+                    'column_number' => $new_column_count,
+                    'column_names' => $this->_columnNames,
+                    'selected' => '',
+                ]);
+                $new_column_count++;
+            }
+            if (! empty($this->_criteriaColumnDelete)
+                && isset($this->_criteriaColumnDelete[$column_index])
+                && $this->_criteriaColumnDelete[$column_index] == 'on'
+            ) {
+                continue;
+            }
+            $selected = '';
+            if (isset($_REQUEST['criteriaColumn'][$column_index])) {
+                $selected = $_REQUEST['criteriaColumn'][$column_index];
+                $this->_formColumns[$new_column_count]
+                    = $_REQUEST['criteriaColumn'][$column_index];
+            }
+            $html_output .= $html_output = Template::get('database/qbe/column_select_cell')->render([
+                'column_number' => $new_column_count,
+                'column_names' => $this->_columnNames,
+                'selected' => '',
+            ]);
+            $new_column_count++;
+        } // end for
+        $this->_new_column_count = $new_column_count;
+        $html_output .= '</tr>';
+
+        $html = Template::get('database/qbe/main')->render(array(
+            'searches_field' => $GLOBALS['cfgRelation']['savedsearcheswork'],
+            'current_search_id' => $currentSearchId,
+            'current_search_name' => $currentSearchName,
+            'saved_search_list' => $this->_savedSearchList,
+            'criteria_column_count' => $this->_criteria_column_count,
+        ));
+
         // Get table's <tr> elements
-        $html_output .= $this->_getColumnNamesRow();
-        $html_output .= $this->_getColumnAliasRow();
-        $html_output .= $this->_getShowRow();
-        $html_output .= $this->_getSortRow();
-        $html_output .= $this->_getSortOrder();
-        $html_output .= $this->_getCriteriaInputboxRow();
-        $html_output .= $this->_getInsDelAndOrCriteriaRows();
-        $html_output .= $this->_getModifyColumnsRow();
-        $html_output .= '</table>';
+        $html .= $this->_getColumnNamesRow();
+        $html .= $this->_getColumnAliasRow();
+        $html .= $this->_getShowRow();
+        $html .= $this->_getSortRow();
+        $html .= $this->_getSortOrder();
+        $html .= $this->_getCriteriaInputboxRow();
+        $html .= $this->_getInsDelAndOrCriteriaRows();
+        $html .= $this->_getModifyColumnsRow();
+        $html .= '</table>';
         $this->_new_row_count--;
         $url_params = [];
         $url_params['db'] = $this->_db;
         $url_params['criteriaColumnCount'] = $this->_new_column_count;
         $url_params['rows'] = $this->_new_row_count;
-        $html_output .= Url::getHiddenInputs($url_params);
-        $html_output .= '</div>';
-        $html_output .= '</fieldset>';
-        $html_output .= '</div>';
+        $html .= Url::getHiddenInputs($url_params);
+        $html .= '</div>';
+        $html .= '</fieldset>';
+        $html .= '</div>';
         // get footers
-        $html_output .= $this->_getTableFooters();
+        $html .= $this->_getTableFooters();
         // get tables select list
-        $html_output .= $this->_getTablesList();
-        $html_output .= '</form>';
-        $html_output .= '<form action="db_qbe.php" method="post" class="lock-page">';
-        $html_output .= Url::getHiddenInputs(['db' => $this->_db]);
+        $html .= $this->_getTablesList();
+        $html .= '</form>';
+        $html .= '<form action="db_qbe.php" method="post" class="lock-page">';
+        $html .= Url::getHiddenInputs(['db' => $this->_db]);
         // get SQL query
-        $html_output .= '<div class="floatleft desktop50">';
-        $html_output .= '<fieldset>';
-        $html_output .= '<legend>'
+        $html .= '<div class="floatleft desktop50">';
+        $html .= '<fieldset>';
+        $html .= '<legend>'
             . sprintf(
                 __('SQL query on database <b>%s</b>:'),
                 Util::getDbLink($this->_db)
             );
-        $html_output .= '</legend>';
+        $html .= '</legend>';
         $text_dir = 'ltr';
-        $html_output .= '<textarea cols="80" name="sql_query" id="textSqlquery"'
+        $html .= '<textarea cols="80" name="sql_query" id="textSqlquery"'
             . ' rows="' . ((count($this->_criteriaTables) > 30) ? '15' : '7') . '"'
             . ' dir="' . $text_dir . '">';
 
         if (empty($this->_formColumns)) {
             $this->_formColumns = [];
         }
-        $html_output .= $this->_getSQLQuery($this->_formColumns);
+        $html .= $this->_getSQLQuery($this->_formColumns);
 
-        $html_output .= '</textarea>';
-        $html_output .= '</fieldset>';
+        $html .= '</textarea>';
+        $html .= '</fieldset>';
         // displays form's footers
-        $html_output .= '<fieldset class="tblFooters">';
-        $html_output .= '<input type="hidden" name="submit_sql" value="1" />';
-        $html_output .= '<input type="submit" value="' . __('Submit Query') . '" />';
-        $html_output .= '</fieldset>';
-        $html_output .= '</div>';
-        $html_output .= '</form>';
-        return $html_output;
-    }
-
-    /**
-     * Get fields to display
-     *
-     * @return string
-     */
-    private function _getSavedSearchesField()
-    {
-        $html_output = __('Saved bookmarked search:');
-        $html_output .= ' <select name="searchId" id="searchId">';
-        $html_output .= '<option value="">' . __('New bookmark') . '</option>';
-
-        $currentSearch = $this->_getCurrentSearch();
-        $currentSearchId = null;
-        $currentSearchName = null;
-        if (null != $currentSearch) {
-            $currentSearchId = $currentSearch->getId();
-            $currentSearchName = $currentSearch->getSearchName();
-        }
-
-        foreach ($this->_savedSearchList as $id => $name) {
-            $html_output .= '<option value="' . htmlspecialchars($id)
-                . '" ' . (
-                $id == $currentSearchId
-                    ? 'selected="selected" '
-                    : ''
-                )
-                . '>'
-                . htmlspecialchars($name)
-                . '</option>';
-        }
-        $html_output .= '</select>';
-        $html_output .= '<input type="text" name="searchName" id="searchName" '
-            . 'value="' . htmlspecialchars($currentSearchName) . '" />';
-        $html_output .= '<input type="hidden" name="action" id="action" value="" />';
-        $html_output .= '<input type="submit" name="saveSearch" id="saveSearch" '
-            . 'value="' . __('Create bookmark') . '" />';
-        if (null !== $currentSearchId) {
-            $html_output .= '<input type="submit" name="updateSearch" '
-                . 'id="updateSearch" value="' . __('Update bookmark') . '" />';
-            $html_output .= '<input type="submit" name="deleteSearch" '
-                . 'id="deleteSearch" value="' . __('Delete bookmark') . '" />';
-        }
-
-        return $html_output;
+        $html .= '<fieldset class="tblFooters">';
+        $html .= '<input type="hidden" name="submit_sql" value="1" />';
+        $html .= '<input type="submit" value="' . __('Submit Query') . '" />';
+        $html .= '</fieldset>';
+        $html .= '</div>';
+        $html .= '</form>';
+        return $html;
     }
 
     /**
