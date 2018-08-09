@@ -109,55 +109,13 @@ class Export
     }
 
     /**
-     * Prints Html For Export Hidden Input
-     *
-     * @param string $exportType  Selected Export Type
-     * @param string $db          Selected DB
-     * @param string $table       Selected Table
-     * @param string $singleTable Single Table
-     * @param string $sqlQuery    SQL Query
-     *
-     * @return string
-     */
-    public function getHtmlForHiddenInputs(
-        $exportType,
-        $db,
-        $table,
-        $singleTable,
-        $sqlQuery
-    ) {
-        global $cfg;
-
-        // If the export method was not set, the default is quick
-        if (isset($_GET['export_method'])) {
-            $cfg['Export']['method'] = $_GET['export_method'];
-        } elseif (! isset($cfg['Export']['method'])) {
-            $cfg['Export']['method'] = 'quick';
-        }
-
-        if (empty($sqlQuery) && isset($_GET['sql_query'])) {
-            $sqlQuery = $_GET['sql_query'];
-        }
-
-        return $this->template->render('display/export/hidden_inputs', [
-            'db' => $db,
-            'table' => $table,
-            'export_type' => $exportType,
-            'export_method' => $cfg['Export']['method'],
-            'single_table' => $singleTable,
-            'sql_query' => $sqlQuery,
-            'template_id' => isset($_GET['template_id']) ? $_GET['template_id'] : '',
-        ]);
-    }
-
-    /**
-     * Returns HTML for the options in template dropdown
+     * Returns existing templates
      *
      * @param string $exportType export type - server, database, or table
      *
-     * @return string HTML for the options in teplate dropdown
+     * @return array list of existing templates for option
      */
-    private function getOptionsForTemplates($exportType)
+    private function getTemplatesOptions($exportType)
     {
         // Get the relation settings
         $cfgRelation = $this->relation->getRelationsParam();
@@ -182,10 +140,7 @@ class Export
             }
         }
 
-        return $this->template->render('display/export/template_options', [
-            'templates' => $templates,
-            'selected_template' => !empty($_GET['template_id']) ? $_GET['template_id'] : null,
-        ]);
+        return $templates;
     }
 
     /**
@@ -664,6 +619,7 @@ class Export
         $unlimNumRows,
         $multiValues
     ) {
+        global $cfg;
         $cfgRelation = $this->relation->getRelationsParam();
 
         if (isset($_REQUEST['single_table'])) {
@@ -689,31 +645,31 @@ class Export
             exit;
         }
 
-        $html = $this->template->render('display/export/option_header', [
-            'export_type' => $exportType,
-            'db' => $db,
-            'table' => $table,
-        ]);
-
-        if ($cfgRelation['exporttemplateswork']) {
-            $html .= $this->template->render('display/export/template_loading', [
-                'options' => $this->getOptionsForTemplates($exportType),
-            ]);
-        }
-
-        $html .= '<form method="post" action="export.php" '
-            . ' name="dump" class="disableAjax">';
-
         //output Hidden Inputs
         $singleTableStr = isset($GLOBALS['single_table']) ? $GLOBALS['single_table']
             : '';
-        $html .= $this->getHtmlForHiddenInputs(
-            $exportType,
-            $db,
-            $table,
-            $singleTableStr,
-            $sqlQuery
-        );
+        // If the export method was not set, the default is quick
+        if (isset($_GET['export_method'])) {
+            $cfg['Export']['method'] = $_GET['export_method'];
+        } elseif (! isset($cfg['Export']['method'])) {
+            $cfg['Export']['method'] = 'quick';
+        }
+
+        if (empty($sqlQuery) && isset($_GET['sql_query'])) {
+            $sqlQuery = $_GET['sql_query'];
+        }
+
+        $html = $this->template->render('display/export/main', [
+            'export_type' => $exportType,
+            'db' => $db,
+            'table' => $table,
+            'export_templates_work' => $cfgRelation['exporttemplateswork'],
+            'templates' => $this->getTemplatesOptions($exportType),
+            'selected_template' => !empty($_GET['template_id']) ? $_GET['template_id'] : null,
+            'export_method' => $cfg['Export']['method'],
+            'single_table' => $singleTableStr,
+            'sql_query' => $sqlQuery,
+        ]);
 
         //output Export Options
         $html .= $this->getHtmlForOptions(
@@ -791,9 +747,13 @@ class Export
 
         $response->setRequestStatus(true);
         if ('create' == $_REQUEST['templateAction']) {
+            $templates = $this->getTemplatesOptions($_REQUEST['exportType']);
             $response->addJSON(
                 'data',
-                $this->getOptionsForTemplates($_REQUEST['exportType'])
+                $this->template->render('display/export/template_options', [
+                    'templates' => $templates,
+                    'selected_template' => !empty($_GET['template_id']) ? $_GET['template_id'] : null,
+                ])
             );
         } elseif ('load' == $_REQUEST['templateAction']) {
             $data = null;

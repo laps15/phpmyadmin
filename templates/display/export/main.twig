@@ -1,0 +1,68 @@
+<div class="exportoptions" id="header">
+    <h2>
+        {{ get_image('b_export', 'Export'|trans) }}
+        {% if export_type == 'server' %}
+            {% trans 'Exporting databases from the current server' %}
+        {% elseif export_type == 'database' %}
+            {{ 'Exporting tables from "%s" database'|trans|format(db) }}
+        {% else %}
+            {{ 'Exporting rows from "%s" table'|trans|format(table) }}
+        {% endif %}
+    </h2>
+</div>
+{% if export_templates_work %}
+    <div class="exportoptions" id="export_templates">
+        <h3>{% trans 'Export templates:' %}</h3>
+
+        <div class="floatleft">
+            <form method="post" action="tbl_export.php" id="newTemplateForm" class="ajax">
+                <h4>{% trans 'New template:' %}</h4>
+                <input type="text" name="templateName" id="templateName"
+                    maxlength="64" placeholder="{% trans 'Template name' %}" required>
+                <input type="submit" name="createTemplate" id="createTemplate"
+                    value="{% trans 'Create' %}">
+            </form>
+        </div>
+
+        <div class="floatleft" style="margin-left: 50px;">
+            <form method="post" action="tbl_export.php" id="existingTemplatesForm" class="ajax">
+                <h4>{% trans 'Existing templates:' %}</h4>
+                <label for="template">{% trans 'Template:' %}</label>
+                <select name="template" id="template" required>
+                    {% include 'display/export/template_options.twig' with {
+                        'templates': templates,
+                        'selected_template': selected_template
+                    } only %}
+                </select>
+                <input type="submit" name="updateTemplate" id="updateTemplate" value="{% trans 'Update' %}">
+                <input type="submit" name="deleteTemplate" id="deleteTemplate" value="{% trans 'Delete' %}">
+            </form>
+        </div>
+
+        <div class="clearfloat"></div>
+    </div>
+{% endif %}
+<form method="post" action="export.php" name="dump" class="disableAjax">
+    {% if export_type == 'server' %}
+        {{ get_hidden_inputs('', '', 1) }}
+    {% elseif export_type == 'database' %}
+        {{ get_hidden_inputs(db, '', 1) }}
+    {% else %}
+        {{ get_hidden_inputs(db, table, 1) }}
+    {% endif %}
+
+    {# Just to keep this value for possible next display of this form after saving on server #}
+    {% if single_table is not empty %}
+        <input type="hidden" name="single_table" value="TRUE">
+    {% endif %}
+
+    <input type="hidden" name="export_type" value="{{ export_type }}">
+
+    {# The export method (quick, custom or custom-no-form) #}
+    <input type="hidden" name="export_method" value="{{ export_method }}">
+
+    {% if sql_query is not empty %}
+        <input type="hidden" name="sql_query" value="{{ sql_query }}">
+    {% endif %}
+
+    <input type="hidden" name="template_id" value="{{ selected_template_ }}">
